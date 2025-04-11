@@ -35,31 +35,7 @@ respective inputs and outputs that use references to entry archives of the respe
 code runs.
 
 ```yaml
-workflow2:
-  inputs:
-    - name: input system
-      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
-  outputs:
-    - name: relaxed system
-      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-    - name: ground state calculation of relaxed system
-      section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
-  tasks:
-    - name: GeometryOpt
-      inputs:
-        - name: input system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
-      outputs:
-        - name: relaxed system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-
-    - name: GroundStateCalculation
-      inputs:
-        - name: input system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-      outputs:
-        - name: ground state
-          section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
+--8<-- "examples/docs/workflows/simple.archive.yaml"
 ```
 
 
@@ -69,47 +45,7 @@ Since a `Workflow` instance is also a `Tasks` instance due to inheritance, we ca
 workflows. Here we detailed the `GeometryOpt` as a *nested* workflow:
 
 ```yaml
-workflow2:
-  inputs:
-    - name: input system
-      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
-  outputs:
-    - name: relaxed system
-      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-    - name: ground state calculation of relaxed system
-      section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
-  tasks:
-    - name: GeometryOpt
-      m_def: nomad.datamodel.metainfo.workflow.Workflow
-      inputs:
-        - name: input system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
-      outputs:
-        - name: relaxed system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-      tasks:
-        - inputs:
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
-          outputs:
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/1'
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/calculation/0'
-        - inputs:
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/1'
-          outputs:
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/2'
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/calculation/1'
-        - inputs:
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/2'
-          outputs:
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/3'
-            - section: '../upload/raw/geom_opt.archive.yaml#/run/0/calculation/2'
-    - name: GroundStateCalculation
-      inputs:
-        - name: input system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-      outputs:
-        - name: ground state
-          section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
+--8<-- "examples/docs/workflows/nested.archive.yaml"
 ```
 
 ### Nested Workflows in multiple entries
@@ -121,60 +57,14 @@ own section `workflow2` that only contains the `GeometryOpt` workflow and uses l
 references to its inputs and outputs:
 
 ```yaml
-workflow2:
-  name: GeometryOpt
-  inputs:
-    - name: input system
-      section: '#/run/0/system/0'
-  outputs:
-    - name: relaxed system
-      section: '#/run/0/system/-1'
-  tasks:
-    - inputs:
-        - section: '#/run/0/system/0'
-      outputs:
-        - section: '#/run/0/system/1'
-        - section: '#/run/0/calculation/0'
-    - inputs:
-        - section: '#/run/0/system/1'
-      outputs:
-        - section: '#/run/0/system/2'
-        - section: '#/run/0/calculation/1'
-    - inputs:
-        - section: '#/run/0/system/2'
-      outputs:
-        - section: '#/run/0/system/3'
-        - section: '#/run/0/calculation/2'
-run:
-  - program:
-      name: 'VASP'
-    system: [{}, {}, {}]
-    calculation: [{}, {}, {}]
+--8<-- "examples/docs/workflows/geom_opt.archive.yaml"
 ```
 
 When we want to detail the complex workflow, we now need to refer to a nested workflow in
 a different entry. This cannot be done directly, because `Workflow` instances can only contain `Task` instances and not reference them. Therefore, we added a `TaskReference` section definition that can be used to create proxy instances for tasks and workflows:
 
 ```yaml
-workflow2:
-  inputs:
-    - name: input system
-      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/0'
-  outputs:
-    - name: relaxed system
-      section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-    - name: ground state calculation of relaxed system
-      section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
-  tasks:
-    - m_def: nomad.datamodel.metainfo.workflow.TaskReference
-      task: '../upload/raw/geom_opt.archive.yaml#/workflow2'
-    - name: GroundStateCalculation
-      inputs:
-        - name: input system
-          section: '../upload/raw/geom_opt.archive.yaml#/run/0/system/-1'
-      outputs:
-        - name: ground state
-          section: '../upload/raw/ground_state.archive.yaml#/run/0/calculations/0'
+--8<-- "examples/docs/workflows/composed.archive.yaml"
 ```
 
 ## Extending the workflow schema
@@ -190,22 +80,9 @@ calculation of the optimization:
 
 ```yaml
 definitions:
-  sections:
-    GeometryOptimizationWorkflow:
-      base_section: nomad.datamodel.metainfo.workflow.Workflow
-      quantities:
-        threshold:
-          type: float
-          unit: eV
-        final_calculation:
-          type: runschema.calculation.Calculation
-
+{{ yaml_snippet('examples/docs/workflows/specialized.archive.yaml:definitions', '  ', '') }}
 workflow2:
-  m_def: GeometryOptimizationWorkflow
-  final_calculation: '#/run/0/calculation/-1'
-  threshold: 0.029
-  name: GeometryOpt
-  inputs:
+{{ yaml_snippet('examples/docs/workflows/specialized.archive.yaml:workflow2', '  ', 'inputs,outputs,tasks') }}inputs:
     ...
 ```
 
